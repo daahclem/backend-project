@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: 'rabbitmq:3-management'
+    hostname: 'rabbitmq'
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+
+  postgres:
+    image: 'postgres:13'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234Kwadwo
+      POSTGRES_DB: mydb
+    volumes:
+      - './scripts/schema.sql:/docker-entrypoint-initdb.d/schema.sql'
+      - 'postgres-data:/var/lib/postgresql/data'
+    ports:
+      - '5432:5432'
+
+  redis:
+    image: 'redis:6'
+    ports:
+      - '6379:6379'
+
+  producer:
+    build: .
+    working_dir: /app/src/producer
+    command: 'npm run start-producer'
+    volumes:
+      - './src:/app/src'
+      - './package.json:/app/package.json'
+      - './package-lock.json:/app/package-lock.json'
+    depends_on:
+      - 'rabbitmq'
+    environment:
+      NODE_ENV: production
+
+  consumer-api:
+    build: .
+    working_dir: /app/src/consumer-api
+    command: 'npm run start-consumer-api'
+    volumes:
+      - './src:/app/src'
+      - './package.json:/app/package.json'
+      - './package-lock.json:/app/package-lock.json'
+    depends_on:
+      - 'rabbitmq'
+      - 'postgres'
+      - 'redis'
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: production
+
+volumes:
+  postgres-data:

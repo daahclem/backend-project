@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Display</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Data</h1>
+    <form id="add-data-form">
+        <label for="field1">Field 1:</label>
+        <input type="text" id="field1" name="field1" required>
+        <label for="field2">Field 2:</label>
+        <input type="text" id="field2" name="field2" required>
+        <label for="field3">Field 3:</label>
+        <input type="text" id="field3" name="field3" required>
+        <button type="submit">Add Data</button>
+    </form>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Field 1</th>
+                <th>Field 2</th>
+                <th>Field 3</th>
+            </tr>
+        </thead>
+        <tbody id="data-table">
+        </tbody>
+    </table>
+
+    <script>
+        const dataTable = document.getElementById('data-table');
+        const addDataForm = document.getElementById('add-data-form');
+
+        function addDataRow(data) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${data.id}</td>
+                <td>${data.field1}</td>
+                <td>${data.field2}</td>
+                <td>${data.field3}</td>
+            `;
+            dataTable.appendChild(row);
+        }
+
+        addDataForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData(addDataForm);
+            const data = Object.fromEntries(formData.entries());
+
+            const response = await fetch('http://localhost:3000/data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                const savedData = await response.json();
+                addDataRow(savedData);
+                addDataForm.reset();
+            } else {
+                console.error('Error saving data:', await response.text());
+            }
+        });
+
+        const source = new EventSource('http://localhost:3000/data');
+
+        source.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            addDataRow(data);
+        };
+
+        source.onerror = function (error) {
+            console.error('EventSource error:', error);
+        };
+    </script>
+</body>
+</html>
